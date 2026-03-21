@@ -9,6 +9,7 @@ import pytest
 sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 
 from core.client import get_client 
+from core.loader import load_yaml 
 
 @pytest.fixture(scope="session")
 def base_url():
@@ -18,3 +19,14 @@ def base_url():
 @pytest.fixture
 def client(base_url):
     return get_client(base_url)
+
+@pytest.fixture(scope="session")
+def auth_token(base_url):
+    users = load_yaml("users.yaml")
+    cred = next(u for u in users if u.get("expect_status")==200)
+    c = get_client(base_url)
+    r = c.post(f"{base_url}/login", json={"email":cred["email"],"password": cred["password"]},)
+    assert r.status_code == 200 , f"login failed: {r.text}"
+    data = r.json()
+    assert "token" in data 
+    return data["token"]
